@@ -1,42 +1,45 @@
+from flask import Flask, request
 import sqlite3
 import subprocess
-import os
 
-app = sqlite3.connect("users.db")
-cursor = app.cursor()
+app = Flask(__name__)
 
 
-def find_user(username):
+def get_db():
+    return sqlite3.connect("users.db")
+
+
+@app.route("/user")
+def find_user():
+    username = request.args.get("username", "")
+
+    db = get_db()
+    cursor = db.cursor()
+
+    # Intentionally vulnerable: user input is directly added to SQL.
     query = "SELECT * FROM users WHERE username = '" + username + "'"
     cursor.execute(query)
-    return cursor.fetchall()
+
+    results = cursor.fetchall()
+    db.close()
+
+    return str(results)
 
 
-def ping_host(host):
+@app.route("/ping")
+def ping_host():
+    host = request.args.get("host", "")
+
+    # Intentionally vulnerable: user input is passed to a shell command.
     result = subprocess.run(
         "ping -c 1 " + host,
         shell=True,
         capture_output=True,
         text=True
     )
+
     return result.stdout
 
 
-def read_file(filename):
-    with open(filename, "r") as file:
-        return file.read()
-
-
-def main():
-    username = input("Enter username: ")
-    print(find_user(username))
-
-    host = input("Enter host to ping: ")
-    print(ping_host(host))
-
-    filename = input("Enter filename: ")
-    print(read_file(filename))
-
-
 if __name__ == "__main__":
-    main()
+    app.run(debug=True)
