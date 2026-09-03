@@ -16,9 +16,9 @@ def find_user():
     db = get_db()
     cursor = db.cursor()
 
-    # Intentionally vulnerable: user input is directly added to SQL.
-    query = "SELECT * FROM users WHERE username = '" + username + "'"
-    cursor.execute(query)
+    # Fixed: use a parameterized SQL query.
+    query = "SELECT * FROM users WHERE username = ?"
+    cursor.execute(query, (username,))
 
     results = cursor.fetchall()
     db.close()
@@ -30,10 +30,10 @@ def find_user():
 def ping_host():
     host = request.args.get("host", "")
 
-    # Intentionally vulnerable: user input is passed to a shell command.
+    # Fixed: avoid shell execution and pass arguments separately.
     result = subprocess.run(
-        "ping -c 1 " + host,
-        shell=True,
+        ["ping", "-c", "1", host],
+        shell=False,
         capture_output=True,
         text=True
     )
@@ -42,4 +42,4 @@ def ping_host():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=False)
